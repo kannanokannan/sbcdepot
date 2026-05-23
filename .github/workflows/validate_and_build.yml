@@ -1,0 +1,107 @@
+name: Validate and Compile SBC Depot Apps
+
+on:
+  pull_request:
+    paths:
+      - 'apps/**.json'
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/**.json'
+
+permissions:
+  contents: write
+
+jobs:
+  validate_and_compile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Security Validator
+        run: |
+          python3 << 'EOF'
+          import os, json, re
+
+          app_dir = "apps"
+          required_keys = {"name", "description", "method"}
+          valid_methods = {"apt", "git_clone"}
+
+          MAX_NAME_LEN = 50
+          MAX_DESC_LEN = 150
+          MAX_NOTE_LEN = 200
+
+          for filename in sorted(os.listdir(app_dir)):
+              if not filename.endswith(".json"):
+                  continue
+
+              filepath = os.path.join(app_dir, filename)
+              with open(filepath, "r") as f:
+                  try:
+                      data = json.load(f)
+                  except Exception as e:
+                      raise ValueError(f"Malformed JSON in {filename}: {e}")
+
+              # Required fields
+              if not required_keys.issubset(data.keys()):
+                  raise ValueError(f"Missing required keys in {filename}")
+
+              # Field length caps
+              if len(data["name"]) > MAX_NAME_LEN:
+                  raise ValueError(f"name too long in {filename} (max {MAX_NAME_LEN})")
+              if len(data["description"]) > MAX_DESC_LEN:
+                  raise ValueError(f"description too long in {filename} (max {MAX_DESC_LEN})")
+
+              # Method whitelist
+              if data["method"] not in valid_methods:
+                  raise ValueError(f"Invalid method in {filename}. Must be: apt or git_clone")
+
+              if data["method"] == "apt":
+                  pkg = data.get("package_name", "")
+                  if not pkg or not re.match(r"^[a-z0-9][a-z0-9+\-.]+$", pkg):
+                      raise ValueError(f"Unsafe or missing package_name in {filename}")
+
+              if data["method"] == "git_clone":
+                  url = data.get("repo_url", "")
+                  dest = data.get("destination", "")
+                  if not re.match(r"^https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$", url):
+                      raise ValueError(f"Unsafe repo_url in {filename}")
+                  if not re.match(r"^[A-Za-z0-9_-]+$", dest):
+                      raise ValueError(f"Unsafe destination in {filename} — no dots or slashes allowed")
+
+              # post_install_note validation (optional field)
+              if "post_install_note" in data:
+                  note = data["post_install_note"]
+                  if not isinstance(note, str):
+                      raise ValueError(f"post_install_note must be a string in {filename}")
+                  if len(note) > MAX_NOTE_LEN:
+                      raise ValueError(f"post_install_note too long in {filename} (max {MAX_NOTE_LEN})")
+                  if not re.match(r"^[A-Za-z0-9 _./:~-]+$", note):
+                      raise ValueError(f"post_install_note contains unsafe characters in {filename}")
+
+          print("All apps passed security and structural validation.")
+          EOF
+
+      - name: Compile apps.json
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          jq -s 'to_entries | map(.value + {id: (.key + 1)})' apps/*.json > apps.json
+          echo "Compiled $(jq length apps.json) apps into apps.json"
+
+      - name: Commit and Push apps.json
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config --global user.name "SBCDepot Bot"
+          git config --global user.email "bot@sbcdepot.local"
+          git add apps.json
+          git diff --quiet && git diff --staged --quiet || \
+            (git commit -m "bot: auto-compiled apps.json [skip ci]" && git push)

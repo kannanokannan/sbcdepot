@@ -1,0 +1,6 @@
+{
+  "name": "Neofetch",
+  "description": "A fast, highly customizable system info script.",
+  "method": "apt",
+  "package_name": "neofetch"
+}

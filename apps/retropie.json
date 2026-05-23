@@ -1,0 +1,8 @@
+{
+  "name": "RetroPie Setup",
+  "description": "Turn your Pi into a retro-gaming machine.",
+  "method": "git_clone",
+  "repo_url": "https://github.com/RetroPie/RetroPie-Setup",
+  "destination": "RetroPie-Setup",
+  "post_install_note": "To finish setup run: cd ~/RetroPie-Setup and sudo ./retropie_setup.sh"
+}

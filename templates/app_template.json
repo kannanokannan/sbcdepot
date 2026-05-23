@@ -1,0 +1,6 @@
+{
+  "name": "App Name",
+  "description": "Short clear description of what the tool does. Max 150 chars.",
+  "method": "apt",
+  "package_name": "exact-apt-package-name"
+}
