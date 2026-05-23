@@ -6,7 +6,7 @@ Zero servers. GitHub-backed. Secure by design.
 ## Install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/sbcdepot
+git clone https://github.com/kannanokannan/sbcdepot
 cd sbcdepot
 chmod +x sbcdepot.sh
 ./sbcdepot.sh

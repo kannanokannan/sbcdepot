@@ -5,7 +5,7 @@ clear
 
 # ─── CONFIG ──────────────────────────────────────────────────────────────────
 # Replace YOUR_USERNAME and YOUR_REPO after creating the GitHub repo
-DB_URL="https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/apps.json"
+DB_URL="https://raw.githubusercontent.com/kannanokannan/sbcdepot/main/apps.json"
 
 # ─── HEADER ──────────────────────────────────────────────────────────────────
 echo "========================================="
